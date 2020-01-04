@@ -1,13 +1,18 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:2.2 AS builder
-WORKDIR /sources
+FROM node:11.15.0
 
-COPY *.csproj .
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2 AS build-env
+WORKDIR /app
+
+# Copy csproj and restore as distinct layers
+COPY *.csproj ./
 RUN dotnet restore
 
-COPY . .
-RUN dotnet publish --output /app/ --configuration Release
+# Copy everything else and build
+COPY . ./
+RUN dotnet publish -c Release -o out
 
+# Build runtime image
 FROM mcr.microsoft.com/dotnet/core/aspnet:2.2
 WORKDIR /app
-COPY --from=builder /app .
-CMD ["dotnet", "MyMvc.dll"]
+COPY --from=build-env /app/out .
+CMD ["dotnet", "my-mvc-demo.dll"]
